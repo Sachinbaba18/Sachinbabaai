@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="appWindowTitle">NEET Premium Tracker Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Theme Variables */
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --card-bg: #1e1e1e;
+            --primary-color: #00E676;
+            --header-grad-1: #1f1c2c;
+            --header-grad-2: #928dab;
+            --border-color: #333;
+            --input-bg: #2a2a2a;
+        }
+
+        body.theme-light {
+            --bg-color: #f4f6f9;
+            --text-color: #2c3e50;
+            --card-bg: #ffffff;
+            --primary-color: #27ae60;
+            --header-grad-1: #3498db;
+            --header-grad-2: #8e44ad;
+            --border-color: #e0e0e0;
+            --input-bg: #ecf0f1;
+        }
+
+        body.theme-blue {
+            --bg-color: #0f172a;
+            --text-color: #f8fafc;
+            --card-bg: #1e293b;
+            --primary-color: #38bdf8;
+            --header-grad-1: #0ea5e9;
+            --header-grad-2: #1e3a8a;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 30px; transition: 0.3s; overflow-x: hidden; }
+
+        /* Toast Popup */
+        #toast {
+            visibility: hidden; width: 85%; max-width: 380px;
+            background: linear-gradient(135deg, #FFD700, #FF9800); color: #000;
+            text-align: center; border-radius: 20px; padding: 14px 18px;
+            position: fixed; z-index: 2000; left: 50%; bottom: 30px;
+            transform: translateX(-50%); font-weight: 600; font-size: 0.85rem;
+            transition: opacity 0.3s, bottom 0.3s; opacity: 0; line-height: 1.4;
+        }
+        #toast.show { visibility: visible; opacity: 1; bottom: 40px; }
+
+        /* Header */
+        header { background: linear-gradient(135deg, var(--header-grad-1), var(--header-grad-2)); padding: 20px; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.3s; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .menu-btn { font-size: 1.5rem; background: rgba(0,0,0,0.3); border: none; color: #fff; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+        .header-title { flex-grow: 1; margin-left: 15px; font-size: 1.2rem; font-weight: 700; color: #fff;}
+        .streak-box { background: rgba(255, 255, 255, 0.2); padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 0.8rem; color: #fff; }
+        .countdown-container { background: rgba(0, 0, 0, 0.3); padding: 15px; border-radius: 15px; text-align: center; color: #fff; }
+        #countdown { display: flex; justify-content: space-between; margin-top: 10px; }
+        #countdown div { display: flex; flex-direction: column; align-items: center; }
+        #countdown span { font-size: 1.3rem; font-weight: 700; color: #00E676; }
+        #countdown small { font-size: 0.7rem; color: #ddd; }
+        .score-container { text-align: center; margin-top: 15px; font-size: 1.1rem; font-weight: 600; color: #fff; }
+
+        /* Main Tabs */
+        .tabs { display: flex; justify-content: space-around; padding: 12px 5px; background: var(--card-bg); margin: 15px; border-radius: 12px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .tab-btn { background: none; border: none; color: #888; font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 5px 10px; transition: 0.3s; }
+        .tab-btn.active { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); }
+
+        /* Content Area */
+        .tab-content { display: none; padding: 0 15px; }
+        .tab-content.active { display: block; }
+        .chapter-card { background: var(--card-bg); margin-bottom: 15px; padding: 15px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.3s; }
+        .chapter-title { font-size: 1rem; font-weight: 600; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px; }
+        .tasks-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 8px; }
+        .task-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .task-item label { font-size: 0.65rem; margin-top: 5px; color: var(--text-color); opacity: 0.8; }
+
+        /* Checkboxes and Counters */
+        input[type="checkbox"] { appearance: none; width: 24px; height: 24px; background: var(--input-bg); border: 2px solid var(--border-color); border-radius: 6px; cursor: pointer; }
+        input[type="checkbox"]:checked { background: var(--primary-color); border-color: var(--primary-color); position: relative; }
+        input[type="checkbox"]:checked::after { content: "✔"; position: absolute; color: #fff; font-size: 14px; font-weight: bold; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .counter-btn { min-width: 28px; height: 24px; background: var(--input-bg); border: 2px solid #3d8bff; color: #3d8bff; border-radius: 6px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none; }
+        .counter-btn.active { background: #3d8bff; color: #fff; box-shadow: 0 0 8px rgba(61, 139, 255, 0.5); }
+
+        /* Sidebar */
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 900; display: none; }
+        #overlay.active { display: block; }
+        #sidebar { position: fixed; top: 0; left: -100%; width: 290px; height: 100vh; background: var(--card-bg); z-index: 1000; box-shadow: 4px 0 15px rgba(0,0,0,0.5); transition: left 0.3s ease; overflow-y: auto; }
+        #sidebar.open { left: 0; }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--header-grad-1); color: #fff; }
+        .sidebar-header h2 { user-select: none; cursor: pointer; } 
+        .close-btn { font-size: 1.5rem; color: #fff; background: none; border: none; cursor: pointer; }
+
+        /* Accordion & Settings */
+        .accordion-item { border-bottom: 1px solid var(--border-color); }
+        .accordion-header { width: 100%; text-align: left; background: none; border: none; padding: 18px 20px; font-size: 1rem; font-weight: 600; color: var(--text-color); cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
+        .accordion-header:hover { background: var(--input-bg); }
+        .accordion-header::after { content: '▼'; font-size: 0.8rem; transition: transform 0.3s; }
+        .accordion-header.active::after { transform: rotate(180deg); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.4s ease; background: var(--bg-color); }
+        .accordion-content.open { max-height: 1200px; padding: 15px 20px; overflow-y: auto; }
+        .settings-input, .settings-select { width: 100%; padding: 10px; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; }
+        .settings-btn { background: var(--primary-color); color: #000; border: none; padding: 10px 14px; font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 0.85rem; width: 100%; margin-bottom: 8px; }
+        
+        .quiz-btn { color: #fff; font-size: 0.95rem; padding: 12px; font-weight: 700; margin-bottom: 10px;}
+        .study-btn { color: #fff; font-size: 0.90rem; padding: 10px; font-weight: 600; margin-bottom: 8px; background: #00796b; }
+        .bypass-btn { color: #fff; font-size: 0.90rem; padding: 10px; font-weight: 600; margin-bottom: 8px; background: #229ED9; }
+        
+        .danger-btn { background: #ff5252; color: #fff; margin-top: 10px; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.8rem; border: 1px solid var(--border-color); }
+        .item-row button { background: #ff5252; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; }
+        #secretLinkSection { display: none; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px dashed #00E676; margin-bottom: 20px; }
+
+        /* FLOATING REAL GEMINI BUTTON */
+        #ai-widget-btn { 
+            position: fixed; 
+            right: 20px; 
+            bottom: 20px; 
+            z-index: 9999999; 
+            background: linear-gradient(135deg, #2575fc, #6a11cb); 
+            color: #fff; 
+            border: none; 
+            padding: 12px 20px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            box-shadow: 0 6px 20px rgba(37, 117, 252, 0.5); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            transition: transform 0.3s; 
+        }
+        #ai-widget-btn:hover { transform: scale(1.08); }
+    </style>
+</head>
+<body class="theme-dark">
+
+    <div id="toast">🎉 Reward Unlocked!</div>
+
+    <!-- Official Real Google Gemini Floating Button -->
+    <button id="ai-widget-btn" onclick="openRealGemini()">
+        ✨ Real Gemini AI
+    </button>
+
+    <!-- Sidebar -->
+    <div id="overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h2 onclick="handleSecretClick()">Settings</h2>
+            <button class="close-btn" onclick="toggleSidebar()">✖</button>
+        </div>
+
+        <!-- 1. Live Tests -->
+        <div class="accordion-item">
+            <button class="accordion-header" onclick="toggleAccordion(this)">📝 Live Tests</button>
+            <div class="accordion-content">
+                <button class="settings-btn quiz-btn" style="background:#9c27b0;" onclick="openLink('quiz', 1)">▶ Science Lesson Quiz</button>
+                <button class="settings-btn quiz-btn" style="background:#0288d1;" onclick="openLink('quiz', 2)">▶ NEET TopAll Quiz</button>
+                <button class="settings-btn quiz-btn" style="background:#e64a19;" onclick="openLink('quiz', 3)">▶ Quizard v3</button>
+            </div>
+        </div>
+
+        <!-- 2. Study Materials -->
+        <div class="accordion-item">
+            <button class="accordion-header" onclick="toggleAccordion(this)">📚 Study</button>
+            <div class="accordion-content">
+                <button class="settings-btn study-btn" onclick="openLink('study', 1)">📘 YouTube</button>
+                <button class="settings-btn study-btn" onclick="openLink('study', 2)">📗 PW Thor Batches</button>
+                <button class="settings-btn study-btn" onclick="openLink('study', 3)">📙 PW4Free Batches</button>
+                <button class="settings-btn study-btn" onclick="openLink('study', 4)">📕 DeltaStudy Batches</button>
+                <button class="settings-btn study-btn" onclick="openLink('study', 5)">📓 StudySpark</button>
+            </div>
+        </div>
+
+        <!-- 3. Telegram Link Bypasser Section -->
+        <div class="accordion-item">
+            <button class="accordion-header" onclick="toggleAccordion(this)">🔓 Link Bypasser</button>
+            <div class="accordion-content">
+                <button class="settings-btn bypass-btn" onclick="openLink('bypass', 1)">✈️ Nick Bypass Bot</button>
+                <button class="settings-btn bypass-btn" onclick="openLink('bypass', 2)">✈️ Link Bypass KD Bot</button>
+            </div>
+        </div>
+
+        <!-- 4. App Theme -->
+        <div class="accordion-item">
+            <button class="accordion-header" onclick="toggleAccordion(this)">🎨 App Theme</button>
+            <div class="accordion-content">
+                <select class="settings-select" id="themeSelect" onchange="changeTheme()">
+                    <option value="theme-dark">Dark Mode (Default)</option>
+                    <option value="theme-light">Light Mode</option>
+                    <option value="theme-blue">Midnight Blue</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 5. Apk Editor -->
+        <div class="accordion-item">
+            <button class="accordion-header" onclick="toggleAccordion(this)">⚙️ Apk Editor</button>
+            <div class="accordion-content">
+                
+                <!-- SECRET DIRECT LINKS MANAGER -->
+                <div id="secretLinkSection">
+                    <h4 style="margin-bottom: 8px; font-size: 0.9rem; color: #00E676;">🤫 Direct Links Manager</h4>
+                    <button class="settings-btn" style="background: #555; color: #fff; margin-bottom: 15px;" onclick="changeAdminPin()">🔑 Change Secret PIN</button>
+                    
+                    <h5 style="margin-bottom: 5px; color:#fff;">Quiz Direct Links</h5>
+                    <input type="text" id="linkInputQuiz1" class="settings-input" placeholder="Science Lesson Quiz URL">
+                    <input type="text" id="linkInputQuiz2" class="settings-input" placeholder="NEET TopAll URL">
+                    <input type="text" id="linkInputQuiz3" class="settings-input" placeholder="Quizard URL">
+
+                    <h5 style="margin-top: 10px; margin-bottom: 5px; color:#fff;">Study Direct Links</h5>
+                    <input type="text" id="linkInputStudy1" class="settings-input" placeholder="YouTube URL">
+                    <input type="text" id="linkInputStudy2" class="settings-input" placeholder="PW Thor URL">
+                    <input type="text" id="linkInputStudy3" class="settings-input" placeholder="PW4Free URL">
+                    <input type="text" id="linkInputStudy4" class="settings-input" placeholder="DeltaStudy URL">
+                    <input type="text" id="linkInputStudy5" class="settings-input" placeholder="StudySpark URL">
+
+                    <h5 style="margin-top: 10px; margin-bottom: 5px; color:#fff;">Telegram Bot Links</h5>
+                    <input type="text" id="linkInputBypass1" class="settings-input" placeholder="Nick Bypass Bot (@Nick_Bypass_Bot)">
+                    <input type="text" id="linkInputBypass2" class="settings-input" placeholder="Link Bypass KD Bot (@link_bypass_kd_bot)">
+                    
+                    <button class="settings-btn" style="background:#00E676; color:#000; margin-top: 10px;" onclick="saveAllDirectLinks()">Save Links</button>
+                </div>
+
+                <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Change App Name</h4>
+                <input type="text" id="appNameInput" class="settings-input" placeholder="Enter App Name">
+                <button class="settings-btn" style="background:#3d8bff; color:#fff;" onclick="saveAppName()">Update Name</button>
+                
+                <hr style="border-color: var(--border-color); margin: 15px 0;">
+
+                <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Manage Tasks</h4>
+                <select id="taskSubjectSelect" class="settings-select">
+                    <option value="default">Tasks (Phy/Chem)</option>
+                    <option value="biology">Tasks (Biology)</option>
+                </select>
+                <input type="text" id="newTaskInput" class="settings-input" placeholder="New Task Name">
+                <button class="settings-btn" style="background:#3d8bff; color:#fff;" onclick="addNewTask()">Add Task</button>
+                <div id="currentTaskList" style="margin-top: 10px;"></div>
+
+                <hr style="border-color: var(--border-color); margin: 15px 0;">
+
+                <h4 style="margin-bottom: 8px; font-size: 0.9rem;">Manage Syllabus</h4>
+                <select id="chapterSubjectSelect" class="settings-select">
+                    <option value="physics">Physics</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="biology">Biology</option>
+                </select>
+                <input type="text" id="newChapterInput" class="settings-input" placeholder="New Chapter Name">
+                <button class="settings-btn" style="background:#3d8bff; color:#fff;" onclick="addNewChapter()">Add Chapter</button>
+                <div id="currentChapterList" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
+
+                <button class="settings-btn danger-btn" onclick="resetToDefaultData()">Factory Reset App</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Header -->
+    <header>
+        <div class="top-bar">
+            <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+            <h1 class="header-title" id="appHeaderName">NEET Tracker Pro</h1>
+            <div class="streak-box">🔥 <span id="streakCount">0</span> Days</div>
+        </div>
+        <div class="countdown-container">
+            <div id="countdown">
+                <div><span id="months">0</span><small>Mon</small></div>
+                <div><span id="days">0</span><small>Day</small></div>
+                <div><span id="hours">0</span><small>Hrs</small></div>
+                <div><span id="minutes">0</span><small>Min</small></div>
+                <div><span id="seconds">0</span><small>Sec</small></div>
+            </div>
+        </div>
+        <div class="score-container">
+            Total Points: <span id="totalScore" style="color: var(--primary-color);">0</span> / <span id="maxScore">0</span>
+        </div>
+    </header>
+
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="openTab('physics')">Physics</button>
+        <button class="tab-btn" onclick="openTab('chemistry')">Chemistry</button>
+        <button class="tab-btn" onclick="openTab('biology')">Biology</button>
+        <button class="tab-btn" onclick="openTab('analytics')">Analytics</button>
+    </nav>
+
+    <main>
+        <section id="physics" class="tab-content active"></section>
+        <section id="chemistry" class="tab-content"></section>
+        <section id="biology" class="tab-content"></section>
+        <section id="analytics" class="tab-content">
+            <div class="chart-container"><h3>Overall Progress</h3><canvas id="overallChart"></canvas></div>
+            <div class="chart-container"><h3>Subject Wise</h3><canvas id="subjectChart"></canvas></div>
+            <div class="chart-container"><h3>Task Mastery</h3><canvas id="radarChart"></canvas></div>
+        </section>
+    </main>
+
+    <script>
+        // SMART TELEGRAM & WEB LINK LAUNCHER
+        function launchUrl(url) {
+            if(!url || url.trim() === "") return;
+            url = url.trim();
+            
+            // Auto Fix Telegram Usernames if entered like @botname or botname
+            if (url.startsWith('@')) {
+                url = 'https://t.me/' + url.substring(1);
+            } else if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('tg://')) {
+                // If username without @ (e.g. Nick_Bypass_Bot)
+                if (!url.includes('.')) {
+                    url = 'https://t.me/' + url;
+                } else {
+                    url = 'https://' + url;
+                }
+            }
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // REAL GEMINI LAUNCHER
+        function openRealGemini() {
+            launchUrl('https://gemini.google.com');
+        }
+
+        // DIRECT LINKS CONFIGURATION
+        const QUIZ_LINKS = [
+            "https://sciencelesson.in/", 
+            "https://neet.topall.app/", 
+            "https://quizard-v3-k-716f6b35ea07.herokuapp.com/"
+        ];
+
+        const STUDY_LINKS = [
+            "https://www.youtube.com", 
+            "https://pwthor.live/study/batches", 
+            "https://pw4free.in/study/batches", 
+            "https://deltastudy.site/study-v2/batches", 
+            "https://vidcloud.eu.org/#batches"
+        ];
+
+        // TELEGRAM BOT LINKS FIXED
+        const BYPASS_LINKS = [
+            "https://t.me/Nick_Bypass_Bot",       // Bot 1
+            "https://t.me/link_bypass_kd_bot"     // Bot 2
+        ];
+
+        // 100 MOTIVATIONAL SHAYARIS RESTORED
+        const shayaris = [
+            "✨ 'Koshish aisi karo ki harne ka mauka na mile, Doctor ban ke hi dum lena!' 💪",
+            "🔥 'Rukna nahi hai, thakna nahi hai, Stethoscope gale me lagana hi hai!' 🩺",
+            "🚀 'Manzil mil hi jayegi bhatak kar hi sahi, gumarah toh wo hain jo ghar se nikle hi nahi!'",
+            "🌟 'Mehanat itni khamoshi se karo ki tumhari safalta shor macha de!' 🏆",
+            "🩸 'Safed coat aur gale me stethoscope... isse pyara koi gehna nahi!'",
+            "📚 'Aag laga do kitabo me nahi, apne irado me! NEET phodna hai!' 💥",
+            "🎯 'Sapne wo nahi jo hum sote hue dekhte hain, sapne wo hain jo humein sone nahi dete!'",
+            "🌱 'Aaj ki mehanat kal ka Dr. banayegi! Keep Pushing!' ❤️",
+            "💡 'Raat kitni bhi lambi ho, subah ka suraj nikalne se use koi nahi rok sakta.'",
+            "⚡ 'Mushkile dil ke irado ko azmati hain, sapna teri aankho se parde hatati hain.'",
+            "🔥 'Har subah ek naya mauka deti hai, apne sapne ko sach karne ka.'",
+            "🎯 'Lakshya na ojhal ho, kadam milate chal. Safalta teri kadam chumegi aaj nahi toh kal.'",
+            "📖 'Kitabey teri sabse achhi dost hain, inhi se teri pehchan banegi.'",
+            "💪 'Pani ko barf me badalne me waqt lagta hai, sooraj ko nikalne me waqt lagta hai, thoda sabr rakh, teri mehanat rang layegi.'",
+            "⭐ 'Zindagi me taqdeer badalni hai toh apni kalam aur kitaab se dosti kar lo.'",
+            "🌟 'Jo tufaano me palte hain, wahi duniya badalte hain!'",
+            "🚀 'Apni taqat par bharosa karo, dusro ke sahare uchaan nahi bhari jati.'",
+            "🩺 'Wo din door nahi jab log tumhe 'Doctor sahab' keh kar bulayenge.'",
+            "🔥 'Padhai ka dard temporary hota hai, lekin doctor banne ka garv permanent hota hai!'",
+            "💯 'Jo sapna dekha hai, use pura karne ki zimidari bhi teri hi hai.'",
+            "🎯 'Lakshya bada hai toh mehnat bhi badi karni padegi.'",
+            "📖 'Panna palto, naya gyan lo, NEET ki seedhi par ek aur kadam badhao.'",
+            "⚡ 'Himmat mat haaroo, abhi toh ladaai shuru hui hai!'",
+            "🌟 'Apni pehchan banane ke liye khud ko tpaana padta hai.'",
+            "💪 'Jitni badi chunauti hogi, safalta utni hi shandar hogi.'",
+            "🚀 'Utho, jaago aur tab tak mat ruko jab tak lakshya na mil jaye.'",
+            "🔥 'Raaste chahe jitne bhi kathin ho, hausla hamesha buland rakhna.'",
+            "🎯 'Har ek chapter poora hone par samajh lo tum doctor ke ek kadam aur paas aa gaye.'",
+            "📖 'NCERT ki har line tumhara future decide kar rahi hai, dhyan se padho.'",
+            "⭐ 'Kismat ke bharose baithne wale haath malte reh jaate hain, mehnat karne wale baazi mar lete hain.'",
+            "💪 'Khud par vishwas rakho, tum wo sab kar sakte ho jo tumne socha hai.'",
+            "🔥 'Paseene ki syahi se jo likhte hain apne irado ko, unke mukaddar ke panne kabhi khali nahi hote.'",
+            "🚀 'Sapne dekhna agar galat nahi, toh unhe poora karne ke liye din-raat ek karna bhi galat nahi.'",
+            "🎯 'Aaj ka dard kal ki taqat banega, bas padhte raho.'",
+            "🌟 'Zindagi me badlaav lana hai toh pehle khud ko badalna hoga.'",
+            "💪 'Afsos karne se behtar hai, koshish karke haar maan lena ya jeet jana.'",
+            "🔥 'Jab tak todhenge nahi, tab tak chhodenge nahi!'",
+            "🩺 'White Apron ki chamak tumhari mehnat ki roshni se aayegi.'",
+            "📖 'Physics ke numericals ho ya Bio ke diagrams, sabko apni muthi me kar lo.'",
+            "⚡ 'Waqt kisi ke liye nahi rukta, isliye apne waqt ka sahi istemal karo.'",
+            "🎯 'Target sirf NEET nikalna nahi, top rank lana hai!'",
+            "🌟 'Jaan laga do ya jaane do, beech ka koi rasta nahi hai.'",
+            "💪 'Tumhara aaj ka dedication tumhara kal ka standard banayega.'",
+            "🔥 'Honslo me agar jaan ho, toh har mushkil asaan ho jati hai.'",
+            "🚀 'Udaan bharni hai toh pankho ki nahi, hoslo ki zarurat padti hai.'",
+            "🩺 'Hospital ke corridors me tumhara naam gunjega, bas abhi padhai par dhyan do.'",
+            "📖 'Ek ek karke sare chapters khatam karo, safalta khud-b-khud kadam chumegi.'",
+            "🎯 'Nishana sirf MBBS seat par hona chahiye.'",
+            "⭐ 'Mushkile dil ke irado ko aazmati hain.'",
+            "💪 'Himmat mat haro, tum akele nahi ho, tumhare sapne tumhare sath hain.'",
+            "🔥 'Jitna kathin sangharsh hoga, jeet utni hi shandar hogi.'",
+            "🚀 'Chote-chote kadam bhi bade raste tay kar lete hain.'",
+            "🩺 'Doctor banne ka junoon sar par chadh kar bolna chahiye.'",
+            "📖 'Revision hi safalta ki sabse badi kunji hai.'",
+            "🎯 'Apne goals ke prati hamesha honest raho.'",
+            "🌟 'Duniya kya kehti hai isse koi fark nahi padta, tum kya chahte ho ye maayne rakhta hai.'",
+            "💪 'Zidd karo, aur jo chaha hai use hasil karke dikhao.'",
+            "🔥 'Aag se khelna ho ya NEET se, jigra bada hona chahiye.'",
+            "🚀 'Apne sapno ko hamesha zinda rakho, chahe halaat kaise bhi ho.'",
+            "🩺 'Wohi shaks kamyab hota hai jo haar manna nahi janta.'",
+            "📖 'Har din kuch naya seekho, khud ko behtar banao.'",
+            "🎯 'Target 700+ marks ka hai, toh mehnat bhi aisi hi honi chahiye.'",
+            "🌟 'Khwaabo ko haqeeqat banane ke liye neend se ladna padta hai.'",
+            "💪 'Taakat jism me nahi, irado me honi chahiye.'",
+            "🔥 'Mushkilo se keh do humse ulajh kar na rahen, hum unhi raaston se nikalna jante hain.'",
+            "🚀 'Safar lamba hai toh kya hua, hosla bhi hamara buland hai.'",
+            "🩺 'stethoscope gale me dalne ke liye ye tayyari zaroori hai.'",
+            "📖 'Ek baar jo than liya, fir piche mud kar nahi dekhna.'",
+            "🎯 'Focus aisa ho ki baaki duniya dhundhli ho jaye.'",
+            "🌟 'Khudi ko kar buland itna ki har taqdeer se pehle, khuda bande se puche bata teri raza kya hai.'",
+            "💪 'Mehnat ka fal aur samudra ka jal meetha hi hota hai, bas thoda sabr chahiye.'",
+            "🔥 'Jo log raato me jagte hain, wahi itihas rachte hain.'",
+            "🚀 'Apne andar ke laziness ko khatam karo aur action lo.'",
+            "🩺 'Medical college ka gate tumhara intezaar kar raha hai.'",
+            "📖 'Syllabus bada hai toh kya hua, tumhara hausla bhi toh bada hai.'",
+            "🎯 'Har mock test ko apna final exam samajh kar do.'",
+            "🌟 'Sitaro se aage jahan aur bhi hain, abhi NEET ke imtihaan aur bhi hain.'",
+            "💪 'Jo tum aaj karoge, wahi tumhara kal decide karega.'",
+            "🔥 'Hausle ho buland toh har mushkil asaan lagti hai.'",
+            "🚀 'Piche mud kar dekhne ka waqt nahi hai, aage sirf safalta hai.'",
+            "🩺 'Ek acha doctor banne ke liye ek shandar student banna padta hai.'",
+            "📖 'Concepts clear karo, ratta marna band karo.'",
+            "🎯 'Apne har ek test score ko improve karo.'",
+            "🌟 'Umeed ki ek kiran bhi badi se badi andheri raat ko mita sakti hai.'",
+            "💪 'Khud par yakeen rakho, tum sabse behtar kar sakte ho.'",
+            "🔥 'Aandhi aaye ya tufaan, padhai nahi rukni chahiye.'",
+            "🚀 'Zindagi me kuch bada pana hai toh bade sacrifices dene padte hain.'",
+            "🩺 'Patients ki jaan bachane ka jo junoon hai, wahi tumhe padhne par majboor karega.'",
+            "📖 'Daily targets set karo aur unhe pura karke soyo.'",
+            "🎯 'Rank aisi lao ki sab dekhte reh jayein.'",
+            "🌟 'Har subah ek naya ujaala lekar aati hai, apne sapno ko sach karne ke liye.'",
+            "💪 'Darr ko bhagao, confidence ko gale lagao.'",
+            "🔥 'Aasmaan ko chhoona hai toh zameen par mehnat karni padegi.'",
+            "🚀 'Chalo ek naya itihas likhte hain, NEET ko apne naam karte hain.'",
+            "🩺 'White coat ki shaan hi kuch aur hoti hai dost!'",
+            "📖 'Padhte raho, badhte raho, rukna toh tumne sikha hi nahi.'",
+            "🎯 'Lakshya par nazar, mehnat par bharosa.'",
+            "🌟 'Zindagi me mauka sabko milta hai, jo mehnat karta hai wahi baazi maarta hai.'",
+            "💪 'Tumhari kamyabi hi tumhara sabse bada jawab hogi.'",
+            "🔥 'Ab bas ek hi dhoon hai, NEET crack karna hai aur Doctor banna hai!'"
+        ];
+
+        // APP LOGIC & CONFIGURATION
+        const fullSyllabus = {
+            physics: ["Basic Math & Calculus", "Units and Measurements", "Motion in a Straight Line", "Motion in a Plane", "Laws of Motion", "Work, Energy and Power", "System of Particles and Rotational Motion", "Gravitation", "Mechanical Properties of Solids", "Mechanical Properties of Fluids", "Thermal Properties of Matter", "Thermodynamics", "Kinetic Theory of Gases", "Oscillations", "Waves", "Electric Charges and Fields", "Electrostatic Potential and Capacitance", "Current Electricity", "Moving Charges and Magnetism", "Magnetism and Matter", "Electromagnetic Induction", "Alternating Current", "Electromagnetic Waves", "Ray Optics and Optical Instruments", "Wave Optics", "Dual Nature of Radiation and Matter", "Atoms", "Nuclei", "Semiconductor Electronics"],
+            chemistry: ["Some Basic Concepts of Chemistry", "Structure of Atom", "Classification of Elements and Periodicity", "Chemical Bonding and Molecular Structure", "Thermodynamics", "Equilibrium", "Redox Reactions", "Solutions", "Electrochemistry", "Chemical Kinetics", "p-Block Elements", "d and f Block Elements", "Coordination Compounds", "Organic Chemistry: Some Basic Principles and Techniques", "Hydrocarbons", "Haloalkanes and Haloarenes", "Alcohols, Phenols and Ethers", "Aldehydes, Ketones and Carboxylic Acids", "Amines", "Biomolecules"],
+            biology: ["The Living World", "Biological Classification", "Plant Kingdom", "Animal Kingdom", "Morphology of Flowering Plants", "Anatomy of Flowering Plants", "Structural Organisation in Animals", "Cell: The Unit of Life", "Biomolecules", "Cell Cycle and Cell Division", "Photosynthesis in Higher Plants", "Respiration in Plants", "Plant Growth and Development", "Breathing and Exchange of Gases", "Body Fluids and Circulation", "Excretory Products and Their Elimination", "Locomotion and Movement", "Neural Control and Coordination", "Chemical Coordination and Integration", "Sexual Reproduction in Flowering Plants", "Human Reproduction", "Reproductive Health", "Principles of Inheritance and Variation", "Molecular Basis of Inheritance", "Evolution", "Human Health and Disease", "Microbes in Human Welfare", "Biotechnology: Principles and Processes", "Biotechnology and its Applications", "Organisms and Populations", "Ecosystem", "Biodiversity and Conservation"]
+        };
+        const defaultTasks = ["Lecture", "Notes Rev", "DPP", "Q. Practice", "PYQ", "Revision"];
+        const bioTasks = ["Lecture", "NCERT Read", "Notes Rev", "DPP", "Q. Practice", "PYQ", "Revision"];
+
+        let appName = localStorage.getItem('neetAppName') || "NEET Tracker Pro";
+        let syllabusData = JSON.parse(localStorage.getItem('neetCustomSyllabus')) || fullSyllabus;
+        let tasksConfig = JSON.parse(localStorage.getItem('neetCustomTasks')) || defaultTasks;
+        let bioTasksConfig = JSON.parse(localStorage.getItem('neetCustomBioTasks')) || bioTasks;
+        let trackerData = JSON.parse(localStorage.getItem('neetTrackerData')) || {};
+        let savedTheme = localStorage.getItem('neetAppTheme') || "theme-dark";
+        document.body.className = savedTheme;
+
+        // Custom Overridden Direct Links
+        let customQuizLinks = JSON.parse(localStorage.getItem('neetCustomQuizLinks')) || ["", "", ""];
+        let customStudyLinks = JSON.parse(localStorage.getItem('neetCustomStudyLinks')) || ["", "", "", "", ""];
+        let customBypassLinks = JSON.parse(localStorage.getItem('neetCustomBypassLinks')) || ["", ""];
+
+        let adminPin = localStorage.getItem('neetAdminPin') || "1234";
+        let secretClicks = 0;
+        let secretTimer = null;
+
+        function initApp() {
+            document.getElementById('appHeaderName').innerText = appName;
+            document.getElementById('appWindowTitle').innerText = appName;
+            document.getElementById('appNameInput').value = appName;
+            document.getElementById('themeSelect').value = savedTheme;
+
+            // Load saved custom inputs if present
+            for(let i=0; i<3; i++) document.getElementById(`linkInputQuiz${i+1}`).value = customQuizLinks[i] || QUIZ_LINKS[i] || "";
+            for(let i=0; i<5; i++) document.getElementById(`linkInputStudy${i+1}`).value = customStudyLinks[i] || STUDY_LINKS[i] || "";
+            for(let i=0; i<2; i++) document.getElementById(`linkInputBypass${i+1}`).value = customBypassLinks[i] || BYPASS_LINKS[i] || "";
+
+            renderSubjects(); updateScoreAndGraphs(); calculateStreak(); startCountdown(); renderSettingsPanel();
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function toggleAccordion(btn) {
+            const content = btn.nextElementSibling;
+            document.querySelectorAll('.accordion-header').forEach(h => {
+                if(h !== btn) { h.classList.remove('active'); h.nextElementSibling.classList.remove('open'); }
+            });
+            btn.classList.toggle('active'); content.classList.toggle('open');
+        }
+
+        function handleSecretClick() {
+            secretClicks++; clearTimeout(secretTimer);
+            secretTimer = setTimeout(() => { secretClicks = 0; }, 1500); 
+            
+            if (secretClicks >= 5) {
+                secretClicks = 0;
+                let entered = prompt("Enter Secret PIN:");
+                if (entered === adminPin) {
+                    document.getElementById('secretLinkSection').style.display = 'block';
+                    const editorBtn = document.querySelectorAll('.accordion-header')[4]; 
+                    if(!editorBtn.classList.contains('active')) toggleAccordion(editorBtn);
+                    showToast("Secret Links Manager Unlocked! 🔓");
+                } else if (entered !== null) { alert("Incorrect PIN!"); }
+            }
+        }
+
+        function changeAdminPin() {
+            let old = prompt("Enter Current Secret PIN:");
+            if (old === adminPin) {
+                let newPin = prompt("Enter New PIN:");
+                if (newPin && newPin.trim() !== "") {
+                    adminPin = newPin; localStorage.setItem('neetAdminPin', adminPin); showToast("PIN Changed! ✅");
+                }
+            }
+        }
+
+        function saveAllDirectLinks() {
+            for(let i=0; i<3; i++) { customQuizLinks[i] = document.getElementById(`linkInputQuiz${i+1}`).value.trim(); }
+            for(let i=0; i<5; i++) { customStudyLinks[i] = document.getElementById(`linkInputStudy${i+1}`).value.trim(); }
+            for(let i=0; i<2; i++) { customBypassLinks[i] = document.getElementById(`linkInputBypass${i+1}`).value.trim(); }
+            
+            localStorage.setItem('neetCustomQuizLinks', JSON.stringify(customQuizLinks));
+            localStorage.setItem('neetCustomStudyLinks', JSON.stringify(customStudyLinks));
+            localStorage.setItem('neetCustomBypassLinks', JSON.stringify(customBypassLinks));
+
+            showToast("Direct Links Saved! ✅");
+            setTimeout(() => { document.getElementById('secretLinkSection').style.display = 'none'; }, 1500);
+        }
+
+        function openLink(type, index) {
+            toggleSidebar();
+            let targetUrl = "";
+            if (type === 'quiz') {
+                targetUrl = customQuizLinks[index-1] || QUIZ_LINKS[index-1];
+            } else if (type === 'study') {
+                targetUrl = customStudyLinks[index-1] || STUDY_LINKS[index-1];
+            } else if (type === 'bypass') {
+                targetUrl = customBypassLinks[index-1] || BYPASS_LINKS[index-1];
+            }
+
+            if (targetUrl && targetUrl.trim() !== "") {
+                launchUrl(targetUrl);
+            } else {
+                alert(`${type.toUpperCase()} Link ${index} is empty! Please set a valid link in code or Secret Manager.`);
+            }
+        }
+
+        function changeTheme() {
+            const theme = document.getElementById('themeSelect').value;
+            document.body.className = theme; localStorage.setItem('neetAppTheme', theme); updateScoreAndGraphs();
+        }
+        
+        function openTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        let clickTimers = {}; 
+        function renderSubjects() {
+            Object.keys(syllabusData).forEach(subject => {
+                const container = document.getElementById(subject);
+                if(!container) return; container.innerHTML = '';
+                const tasks = subject === 'biology' ? bioTasksConfig : tasksConfig;
+                if (!trackerData[subject]) trackerData[subject] = {};
+
+                syllabusData[subject].forEach((chapter, chapIndex) => {
+                    if (!trackerData[subject][chapter]) trackerData[subject][chapter] = {};
+                    const card = document.createElement('div'); card.className = 'chapter-card';
+                    let tasksHtml = `<div class="tasks-grid">`;
+                    
+                    tasks.forEach((task, taskIndex) => {
+                        const val = trackerData[subject][chapter][task] || 0;
+                        const uniqueId = `${subject}-${chapIndex}-${taskIndex}`;
+                        
+                        if (task.toLowerCase().includes("revision") || task.toLowerCase().includes("ncert")) {
+                            tasksHtml += `<div class="task-item"><button class="counter-btn ${val > 0 ? 'active' : ''}" onclick="handleSmartClick('${subject}', '${chapter}', '${task}', '${uniqueId}')">${val}</button><label>${task}</label></div>`;
+                        } else {
+                            tasksHtml += `<div class="task-item"><input type="checkbox" id="${uniqueId}" onchange="toggleTask('${subject}', '${chapter}', '${task}', this.checked)" ${val ? 'checked' : ''}><label for="${uniqueId}">${task}</label></div>`;
+                        }
+                    });
+                    tasksHtml += `</div>`;
+                    card.innerHTML = `<div class="chapter-title">${chapter}</div> ${tasksHtml}`;
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        function handleSmartClick(sub, chap, task, id) { 
+            if (clickTimers[id]) { 
+                clearTimeout(clickTimers[id]); delete clickTimers[id]; handleCounterChange(sub, chap, task, -1); 
+            } else { 
+                clickTimers[id] = setTimeout(() => { delete clickTimers[id]; handleCounterChange(sub, chap, task, 1); }, 280); 
+            } 
+        }
+
+        function handleCounterChange(sub, chap, task, change) { 
+            let val = trackerData[sub][chap][task] || 0; 
+            if (change === -1 && val === 0) return; 
+            trackerData[sub][chap][task] = val + change; 
+            saveData(); renderSubjects(); updateScoreAndGraphs(); 
+            if(change > 0) {
+                const randomShayari = shayaris[Math.floor(Math.random() * shayaris.length)];
+                showToast(`🎉 Point Added!\n${randomShayari}`);
+            } else {
+                showToast(`⚠️ Score reduced for ${task}`);
+            }
+        }
+
+        function toggleTask(sub, chap, task, checked) { 
+            trackerData[sub][chap][task] = checked ? 1 : 0; 
+            saveData(); updateScoreAndGraphs(); 
+            if (checked) {
+                const randomShayari = shayaris[Math.floor(Math.random() * shayaris.length)];
+                showToast(`🎉 Task Completed!\n${randomShayari}`);
+            }
+        }
+        
+        function saveData() { 
+            localStorage.setItem('neetTrackerData', JSON.stringify(trackerData)); 
+            localStorage.setItem('neetCustomSyllabus', JSON.stringify(syllabusData)); 
+            localStorage.setItem('neetCustomTasks', JSON.stringify(tasksConfig)); 
+            localStorage.setItem('neetCustomBioTasks', JSON.stringify(bioTasksConfig)); 
+            localStorage.setItem('neetAppName', appName); 
+        }
+        
+        function showToast(msg) { 
+            const toast = document.getElementById("toast"); 
+            toast.innerHTML = msg.replace('\n', '<br><span style="font-size:0.75rem; font-weight:400; opacity: 0.9; line-height: 1.5; display: inline-block; margin-top: 5px;">') + '</span>';
+            toast.className = "show"; 
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 10000); 
+        }
+
+        let overallChart, subjectChart, radarChart;
+        function updateScoreAndGraphs() {
+            let total = 0, max = 0, subScores = { physics: 0, chemistry: 0, biology: 0 }, subMax = { physics: 0, chemistry: 0, biology: 0 }, taskStats = {}; 
+            Object.keys(syllabusData).forEach(sub => {
+                const tasks = sub === 'biology' ? bioTasksConfig : tasksConfig;
+                syllabusData[sub].forEach(chap => { max += tasks.length; subMax[sub] += tasks.length; tasks.forEach(task => { if(!taskStats[task]) taskStats[task] = { done: 0, total: 0 }; taskStats[task].total += 1; const val = (trackerData[sub] && trackerData[sub][chap]) ? (trackerData[sub][chap][task] || 0) : 0; if (val > 0) { total += val; subScores[sub] += val; taskStats[task].done += 1; } }); });
+            });
+            document.getElementById('totalScore').innerText = total; document.getElementById('maxScore').innerText = max;
+            const getP = (val, max) => max === 0 ? 0 : (val / max) * 100;
+            const tc = document.body.classList.contains('theme-light') ? '#333' : '#fff'; const gc = document.body.classList.contains('theme-light') ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+            if(overallChart) overallChart.destroy(); overallChart = new Chart(document.getElementById('overallChart'), { type: 'doughnut', data: { labels: ['Done', 'Pending'], datasets: [{ data: [getP(total, max), 100-getP(total, max)], backgroundColor: ['#00E676', '#555'], borderWidth: 0 }] }, options: { cutout: '75%', plugins: { legend: { labels: { color: tc } } } } });
+            if(subjectChart) subjectChart.destroy(); subjectChart = new Chart(document.getElementById('subjectChart'), { type: 'bar', data: { labels: ['Phy', 'Chem', 'Bio'], datasets: [{ label: '% Done', data: [getP(subScores.physics, subMax.physics), getP(subScores.chemistry, subMax.chemistry), getP(subScores.biology, subMax.biology)], backgroundColor: ['#FF5252', '#FFC107', '#00E676'], borderRadius: 6 }] }, options: { scales: { y: { beginAtZero: true, max: 100, ticks: { color: tc }, grid: { color: gc } }, x: { ticks: { color: tc }, grid: { display: false } } }, plugins: { legend: { display: false } } } });
+            const labels = Object.keys(taskStats); const radarData = labels.map(l => getP(taskStats[l].done, taskStats[l].total));
+            if(radarChart) radarChart.destroy(); radarChart = new Chart(document.getElementById('radarChart'), { type: 'radar', data: { labels: labels, datasets: [{ label: 'Mastery %', data: radarData, backgroundColor: 'rgba(0, 230, 118, 0.2)', borderColor: '#00E676', pointBackgroundColor: '#00E676' }] }, options: { scales: { r: { angleLines: { color: gc }, grid: { color: gc }, pointLabels: { color: tc, font: {size: 10} }, ticks: { display: false, max: 100, beginAtZero: true } } }, plugins: { legend: { display: false } } } });
+        }
+
+        function saveAppName() { const val = document.getElementById('appNameInput').value.trim(); if (val) { appName = val; saveData(); document.getElementById('appHeaderName').innerText = appName; showToast("Name Updated!"); } }
+        function renderSettingsPanel() {
+            const subType = document.getElementById('taskSubjectSelect').value, activeTasks = subType === 'biology' ? bioTasksConfig : tasksConfig;
+            document.getElementById('currentTaskList').innerHTML = activeTasks.map((t, i) => `<div class="item-row"><span>${t}</span><button onclick="removeTask('${subType}', ${i})">X</button></div>`).join('');
+            const chapSub = document.getElementById('chapterSubjectSelect').value;
+            document.getElementById('currentChapterList').innerHTML = syllabusData[chapSub].map((c, i) => `<div class="item-row"><span>${c}</span><button onclick="removeChapter('${chapSub}', ${i})">X</button></div>`).join('');
+        }
+        document.getElementById('taskSubjectSelect').addEventListener('change', renderSettingsPanel); document.getElementById('chapterSubjectSelect').addEventListener('change', renderSettingsPanel);
+        function addNewTask() { const val = document.getElementById('newTaskInput').value.trim(), sub = document.getElementById('taskSubjectSelect').value; if(!val) return; (sub === 'biology' ? bioTasksConfig : tasksConfig).push(val); document.getElementById('newTaskInput').value = ''; saveData(); renderSubjects(); renderSettingsPanel(); updateScoreAndGraphs(); }
+        function removeTask(sub, i) { (sub === 'biology' ? bioTasksConfig : tasksConfig).splice(i, 1); saveData(); renderSubjects(); renderSettingsPanel(); updateScoreAndGraphs(); }
+        function addNewChapter() { const val = document.getElementById('newChapterInput').value.trim(), sub = document.getElementById('chapterSubjectSelect').value; if(!val) return; syllabusData[sub].push(val); document.getElementById('newChapterInput').value = ''; saveData(); renderSubjects(); renderSettingsPanel(); updateScoreAndGraphs(); }
+        function removeChapter(sub, i) { syllabusData[sub].splice(i, 1); saveData(); renderSubjects(); renderSettingsPanel(); updateScoreAndGraphs(); }
+        function resetToDefaultData() { if(confirm("Factory Reset? All data will be lost.")) { localStorage.clear(); location.reload(); } }
+
+        function startCountdown() { const tgt = new Date("May 2, 2027 14:00:00").getTime(); setInterval(() => { const diff = tgt - new Date().getTime(); if (diff < 0) return; document.getElementById("months").innerText = Math.floor(diff / (1000 * 60 * 60 * 24 * 30)); document.getElementById("days").innerText = Math.floor((diff % (1000 * 60 * 60 * 24 * 30)) / (1000 * 60 * 60 * 24)); document.getElementById("hours").innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)); document.getElementById("minutes").innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)); document.getElementById("seconds").innerText = Math.floor((diff % (1000 * 60)) / 1000); }, 1000); }
+        function calculateStreak() { let last = localStorage.getItem('lastLoginDate'), streak = parseInt(localStorage.getItem('streakCount')) || 0, today = new Date().toDateString(); if (last !== today) { let yest = new Date(); yest.setDate(yest.getDate() - 1); streak = (last === yest.toDateString()) ? streak + 1 : 1; localStorage.setItem('lastLoginDate', today); localStorage.setItem('streakCount', streak); } document.getElementById('streakCount').innerText = streak; }
+
+        initApp();
+    </script>
+</body>
+</html>
